@@ -27,7 +27,7 @@
     "generator"
   ],
   "author": "devmaxcat",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/devmaxcat/profile-generator-js/issues"
   },
