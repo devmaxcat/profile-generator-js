@@ -2,7 +2,7 @@
 # profile-generator-js
 A web package which generates colorful avatars for users or content.
 
-[Add an issue](https://github.com/devmaxcat/profile-generator-js/issues) for bugs or features and feel free to submit pull requests!
+[Add an issue](https://github.com/devmaxcat/profile-generator-js/issues) for bugs or features and feel free to submit pull requests. Editing documentation is also appreciated.
 
 # Get Started
 Install `profile-generator-js` (NPM)
