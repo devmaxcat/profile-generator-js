@@ -1,6 +1,6 @@
 # Contributing to profile-generator-js
 
-Hello! Contributions are appreciated and supported. This document outlines how you can best contribute to this repository.
+Hello! Contributions are appreciated and supported. This document outlines how you can best contribute to profile-generator-js.
 
 ## Table of Contents
 - [Reporting Bugs](#reporting-bugs)
@@ -14,7 +14,7 @@ Hello! Contributions are appreciated and supported. This document outlines how y
 
 ### Before Reporting
 - **Check for Existing Issues:** Look through the [bug tracker](issues?q=label%3Abug) to see if the issue has already been reported.
-- **Verify the Bug:** Ensure the issue is a legitimate bug and not a result of incompatible environment components or versions. Make sure you have read the [documentation]().
+- **Verify the Bug:** Ensure the issue is a legitimate bug. Make sure you have read the [documentation]().
 - If you’re seeking support, check [this section](#i-have-a-question) for guidance.
 
 ### Step 1: Submit an Issue
@@ -30,9 +30,10 @@ Hello! Contributions are appreciated and supported. This document outlines how y
 - A maintainer will:
   - Attempt to reproduce the bug.
   - Label the issue as "bug" if confirmed.
+  - Contributors can then start to implement a fix.
 - If you are confident this is a bug, you can optionally proceed to Step 3 before receiving feedback.
 
-### Step 3: Suggest Fixes (Optional)
+### Step 3: Suggest Fixes
 - If you’d like to fix the bug yourself:
   - Fork the repository and create a branch (see [branch naming conventions](#branch-naming-conventions)).
   - Implement your fix and submit a pull request linking to the issue.
@@ -40,14 +41,14 @@ Hello! Contributions are appreciated and supported. This document outlines how y
 ---
 
 ## Suggesting Enhancements
-
+Or features.
 ### Step 1: Submit an Issue
 - Open a new issue using [this link](https://github.com/devmaxcat/profile-generator-js/issues/new).
 - Label your issue with "enhancement."
 - Use a **clear and descriptive title** for the issue.
 - Provide a detailed description of:
-  - The current behavior.
-  - The proposed behavior and why it’s an improvement.
+  - Current implementation
+  - The proposed implementation and why it’s an improvement.
   - Any examples or references to similar features in other projects.
 
 ### Step 2: Wait for Feedback
@@ -65,9 +66,9 @@ Hello! Contributions are appreciated and supported. This document outlines how y
 ---
 
 ## Contributing to Documentation
-To contribute to the documentation:
+To contribute to documentation:
 
-1. **Fork the Repository:** Fork the repo to your own GitHub account.
+1. **Fork the Repository:** Fork the repot.
 2. **Create a Branch:** Use the naming convention `docs/<type>/<topic>`, where:
    - `<topic>` is the part of the documentation you are modifying (e.g., "readme" or "myMethod").
    - `<type>` reflects the nature of your changes:
@@ -88,11 +89,9 @@ When creating a branch, follow these conventions for clarity and organization:
 - For features or enhancements:
 - `feature/<feature-name> enhancement/<enhancement-name>`
 - For bug fixes:
-- `bugfix/<bug-description>`
+- `fix/<bug-description>`
 - For documentation:
 - `docs/<type>/<topic>`
-
-This ensures that branches are easy to identify and manage.
 
 ---
 
