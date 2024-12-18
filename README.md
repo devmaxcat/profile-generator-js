@@ -14,11 +14,7 @@ Then, import in your project.
 ```js
 import generateAvatar from "profile-generator-js";
 ```
-#### CommonJS
-```js
-const generateAvatar = require('profile-generator-js');
-```
-
+Please bundle to use on the web. Try esbuild.
 
 #### Example Usage
 ```js
@@ -72,7 +68,7 @@ Returns a string containing the encoded URL.
 ```
 ---
 ### stringToColor()
-A helper function, accessible if needed.
+A helper function, accessible if wanted.
 ```ts
 stringToColor(str: string): string
 ```
@@ -116,9 +112,9 @@ The size of overlayed text. Default is half of `AvatarOptions.size`.
 The weight of the font. Default is `"bold"`.
 
 `AvatarOptions.customIcon`  
-The URL of a custom icon to overlay on the avatar. If the file is an SVG, it will inherit the foreground color. Note: `customIcon` cannot be used if the `forceSync` parameter of `generateAvatar()` is set to `true`.
+The URL of a custom icon to overlay on the avatar. If the file is an SVG, it will inherit the foreground color. Note: `customIcon` cannot be used if the `forceSync` parameter of `generateAvatar()` is set to `true`. On node you can input a File path or a Buffer.
 
 `AvatarOptions.export`  
-Determines the type of file the avatar is outputted as. Default is `"image/png"`.
+Determines the mime-type of file the avatar is outputted as. Default is `"image/png"`.
 #### Methods
 None!
