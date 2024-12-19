@@ -58,7 +58,7 @@ export default function generateAvatar(
     forceSync: boolean = false): string | Buffer | Promise<string | Buffer> {
 
     if (!uniqueIndentifier) {
-        throw new Error("Profile-Generator-JS: uniqueIndentifier is undefined.");
+        throw new Error("profile-generator-js: uniqueIndentifier is undefined.");
     }
 
     options = new AvatarOptions(options)

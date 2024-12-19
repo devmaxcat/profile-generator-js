@@ -22,12 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-};
-var _a, _MediaHandler_updateSvgColor, _MediaHandler_svgTextParser, _MediaHandler_svgDocToText, _MediaHandler_svgTextToDataUrl;
 // environment detection
 const isBrowser = typeof window !== 'undefined';
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
@@ -52,7 +46,7 @@ if (isNode) {
 */
 export default function generateAvatar(uniqueIndentifier, letters = uniqueIndentifier.slice(0, 1).toUpperCase(), options = new AvatarOptions(), forceSync = false) {
     if (!uniqueIndentifier) {
-        throw new Error("Profile-Generator-JS: uniqueIndentifier is undefined.");
+        throw new Error("profile-generator-js: uniqueIndentifier is undefined.");
     }
     options = new AvatarOptions(options);
     // Setup canvas
@@ -148,19 +142,20 @@ var MimeType;
 })(MimeType || (MimeType = {}));
 export class AvatarOptions {
     constructor(properties) {
-        this.size = 500;
-        this.foreground = "white";
-        this.font = "Arial";
-        this.fontSize = this.size / 2;
-        this.weight = "bold";
-        this.export = MimeType.png;
-        this.quality = 1;
-        this.exportAsBuffer = false;
         Object.assign(this, properties);
-        if (properties === null || properties === void 0 ? void 0 : properties.size) {
+        if (properties?.size) {
             this.fontSize = properties.size / 2;
         }
     }
+    size = 500;
+    foreground = "white";
+    font = "Arial";
+    fontSize = this.size / 2;
+    weight = "bold";
+    customIcon;
+    export = MimeType.png;
+    quality = 1;
+    exportAsBuffer = false;
 }
 /**
  * A helper function which converts a string to a color.
@@ -196,18 +191,17 @@ class MediaHandler {
         }
         return new Promise((resolve, reject) => {
             if (isAnSvg) {
-                resolve(__classPrivateFieldGet(_a, _a, "m", _MediaHandler_updateSvgColor).call(_a, __classPrivateFieldGet(_a, _a, "m", _MediaHandler_svgTextParser).call(_a, text), color));
+                resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
             }
             else if (isNode && media instanceof Buffer && !(media instanceof URL)) { // Buffer (non-SVG)
                 resolve(media.toString());
             }
-            else if (!(media instanceof Buffer) && (_a.isValidUrl(media)) || isBrowser) { // External Image (Fetch). We'll try to fetch anything a browser gives us.
+            else if (!(media instanceof Buffer) && (MediaHandler.isValidUrl(media)) || isBrowser) { // External Image (Fetch). We'll try to fetch anything a browser gives us.
                 media = media.toString();
                 fetch(media).then((response) => {
                     response.text().then(text => {
-                        var _b;
-                        if ((_b = response.headers.get("content-type")) === null || _b === void 0 ? void 0 : _b.includes("image/svg+xml")) {
-                            resolve(__classPrivateFieldGet(_a, _a, "m", _MediaHandler_updateSvgColor).call(_a, __classPrivateFieldGet(_a, _a, "m", _MediaHandler_svgTextParser).call(_a, text), color));
+                        if (response.headers.get("content-type")?.includes("image/svg+xml")) {
+                            resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
                         }
                         else {
                             resolve(media.toString());
@@ -224,7 +218,7 @@ class MediaHandler {
         else if (!isBrowser && fs.existsSync(media)) {
             return true;
         }
-        else if (!(media instanceof Buffer) && _a.isValidUrl(media) || isBrowser) { // might as well try the fetch if we're on browser.
+        else if (!(media instanceof Buffer) && MediaHandler.isValidUrl(media) || isBrowser) { // might as well try the fetch if we're on browser.
             return true;
         }
     }
@@ -236,57 +230,61 @@ class MediaHandler {
             return false;
         }
     }
+    static #updateSvgColor(document, targetColor) {
+        const paths = document.getElementsByTagName("path");
+        const svgElement = document.getElementsByTagName("svg")[0];
+        if (svgElement.getAttribute("stroke")) {
+            svgElement.setAttribute("stroke", targetColor);
+        }
+        if (svgElement.style.stroke) {
+            svgElement.style.stroke = targetColor;
+        }
+        if (svgElement.getAttribute("fill")) {
+            svgElement.setAttribute("fill", targetColor);
+        }
+        if (svgElement.style.fill) {
+            svgElement.style.fill = targetColor;
+        }
+        // Update each path element's stroke and fill
+        Array.from(paths).forEach((path) => {
+            if (path.getAttribute("stroke")) {
+                path.setAttribute("stroke", targetColor);
+            }
+            if (path.style.stroke) {
+                path.style.stroke = targetColor;
+            }
+            if (path.getAttribute("fill")) {
+                path.setAttribute("fill", targetColor);
+            }
+            if (path.style.fill) {
+                path.style.fill = targetColor;
+            }
+        });
+        // Convert the updated SVG document to a base64-encoded data URL
+        return MediaHandler.#svgTextToDataUrl(MediaHandler.#svgDocToText(document));
+        ;
+    }
+    // Parses an SVG string into a Document object
+    static #svgTextParser(svgText) {
+        if (!isBrowser) {
+            return new JSDOM(svgText, { contentType: "image/svg+xml" }).window.document;
+        }
+        else {
+            const parser = new DOMParser();
+            return parser.parseFromString(svgText, "image/svg+xml");
+        }
+    }
+    static #svgDocToText(svg) {
+        const serializer = new XMLSerializer();
+        return serializer.serializeToString(svg.documentElement);
+    }
+    static #svgTextToDataUrl(svgText) {
+        if (!isBrowser) {
+            const base64Encoded = Buffer.from(svgText).toString('base64');
+            return `data:image/svg+xml;base64,${base64Encoded}`;
+        }
+        else {
+            return `data:image/svg+xml;base64,${btoa(svgText)}`;
+        }
+    }
 }
-_a = MediaHandler, _MediaHandler_updateSvgColor = function _MediaHandler_updateSvgColor(document, targetColor) {
-    const paths = document.getElementsByTagName("path");
-    const svgElement = document.getElementsByTagName("svg")[0];
-    if (svgElement.getAttribute("stroke")) {
-        svgElement.setAttribute("stroke", targetColor);
-    }
-    if (svgElement.style.stroke) {
-        svgElement.style.stroke = targetColor;
-    }
-    if (svgElement.getAttribute("fill")) {
-        svgElement.setAttribute("fill", targetColor);
-    }
-    if (svgElement.style.fill) {
-        svgElement.style.fill = targetColor;
-    }
-    // Update each path element's stroke and fill
-    Array.from(paths).forEach((path) => {
-        if (path.getAttribute("stroke")) {
-            path.setAttribute("stroke", targetColor);
-        }
-        if (path.style.stroke) {
-            path.style.stroke = targetColor;
-        }
-        if (path.getAttribute("fill")) {
-            path.setAttribute("fill", targetColor);
-        }
-        if (path.style.fill) {
-            path.style.fill = targetColor;
-        }
-    });
-    // Convert the updated SVG document to a base64-encoded data URL
-    return __classPrivateFieldGet(_a, _a, "m", _MediaHandler_svgTextToDataUrl).call(_a, __classPrivateFieldGet(_a, _a, "m", _MediaHandler_svgDocToText).call(_a, document));
-    ;
-}, _MediaHandler_svgTextParser = function _MediaHandler_svgTextParser(svgText) {
-    if (!isBrowser) {
-        return new JSDOM(svgText, { contentType: "image/svg+xml" }).window.document;
-    }
-    else {
-        const parser = new DOMParser();
-        return parser.parseFromString(svgText, "image/svg+xml");
-    }
-}, _MediaHandler_svgDocToText = function _MediaHandler_svgDocToText(svg) {
-    const serializer = new XMLSerializer();
-    return serializer.serializeToString(svg.documentElement);
-}, _MediaHandler_svgTextToDataUrl = function _MediaHandler_svgTextToDataUrl(svgText) {
-    if (!isBrowser) {
-        const base64Encoded = Buffer.from(svgText).toString('base64');
-        return `data:image/svg+xml;base64,${base64Encoded}`;
-    }
-    else {
-        return `data:image/svg+xml;base64,${btoa(svgText)}`;
-    }
-};

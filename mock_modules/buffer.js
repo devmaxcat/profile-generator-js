@@ -1,7 +1,10 @@
-// mock-buffer.js
-export const Buffer = {
-  from: () => {
-    throw new Error('Buffer.from is not supported in the browser');
-  },
-  // Add other methods if required
-};
+let buffer = {
+  Buffer
+}
+export default buffer
+
+export const Buffer = class {
+  constructor() {
+    console.log('buffer can not be used in a browser environment.')
+  }
+}
