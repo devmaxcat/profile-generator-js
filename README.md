@@ -14,7 +14,7 @@ Then, import in your project.
 ```js
 import generateAvatar from "profile-generator-js";
 ```
-Please bundle to use on the web. Try esbuild.
+CommonJS support is ify, if bundling to use on the web try esbuild or add esmify plugin to the bundler of your choice, like browserify.
 
 #### Example Usage
 ```js
