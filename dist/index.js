@@ -32,9 +32,9 @@ import fs from "fs";
 import { JSDOM } from "jsdom";
 import { Buffer } from "buffer";
 if (isNode) {
-    const DOM = new JSDOM();
-    const window = DOM.window;
-    const XMLSerializer = window.XMLSerializer;
+    var DOM = new JSDOM();
+    var window = DOM.window;
+    var XMLSerializer = window.XMLSerializer;
 }
 /**
  * A function which generates an image URL based on given parameters.
@@ -62,7 +62,7 @@ export default function generateAvatar(uniqueIndentifier, letters = uniqueIndent
     }
     // Render functions
     function renderBackground() {
-        context.fillStyle = stringToColor(uniqueIndentifier);
+        context.fillStyle = options.background ? options.background : stringToColor(uniqueIndentifier);
         context.fillRect(0, 0, canvas.width, canvas.height);
     }
     function renderText() {
@@ -74,18 +74,13 @@ export default function generateAvatar(uniqueIndentifier, letters = uniqueIndent
     }
     // Export function
     function canvasExport() {
-        if (!isBrowser && options.exportAsBuffer) {
-            const buffer = canvas.toBuffer();
-            new Blob([buffer], { type: options.export });
-            return buffer;
-        }
-        else if (typeof options.export === "string" && options.export === "image/png") {
+        if (typeof options.export === "string" && options.export === "image/png") {
             if (options.quality) {
                 console.warn('profile-generator-js: Quality is not supported for mimeType of image/png. Your quality setting will be ignored');
             }
             return canvas.toDataURL(options.export);
         }
-        else if (typeof options.export === "string" && (options.export === "image/jpeg" || options.export === "image/webp")) {
+        else if (typeof options.export === "string" && (options.export === "image/jpeg")) {
             return canvas.toDataURL(options.export, options.quality);
         }
         canvas.toDataURL(options.export);
@@ -139,6 +134,7 @@ var MimeType;
 (function (MimeType) {
     MimeType["png"] = "image/png";
     MimeType["jpeg"] = "image/jpeg";
+    MimeType["webp"] = "image/webp";
 })(MimeType || (MimeType = {}));
 export class AvatarOptions {
     constructor(properties) {
@@ -149,11 +145,12 @@ export class AvatarOptions {
     }
     size = 500;
     foreground = "white";
+    background;
     font = "Arial";
     fontSize = this.size / 2;
     weight = "bold";
     customIcon;
-    export = MimeType.png;
+    export = "image/png";
     quality = 1;
     exportAsBuffer = false;
 }
@@ -173,32 +170,57 @@ export function stringToColor(str) {
     }
     return color;
 }
-class MediaHandler {
-    // returns a promise resolves the final image with applied transformations / color.
-    static handle(media, color) {
-        let text;
-        let isAnSvg = false;
+class IconMedia {
+    constructor(media) {
+        this.source = media;
         // File Buffer
         if (!isBrowser && media instanceof Buffer) {
-            text = media.toString();
-            isSvg(text) ? isAnSvg = true : isAnSvg = false;
+            this.#text = media.toString();
             // Local File Path
         }
-        else if (!isBrowser && fs.existsSync(media)) {
-            const fileContent = fs.readFileSync(media);
-            text = fileContent.toString();
-            isSvg(text) ? isAnSvg = true : isAnSvg = false;
+        else if (!isBrowser && typeof media === 'string' && fs.existsSync(media)) {
+            this.#text = fs.readFileSync(media).toString();
+            // Blob
         }
+        else if (media instanceof Blob) {
+            this.#text = '';
+        }
+        this.contentType = isSvg(this.#text) ? 'svg' : 'other';
+        // External URL
+        if (!(media instanceof Buffer) && (MediaHandler.isValidUrl(media)) || isBrowser) {
+            this.#text = this.source.toString();
+            this.contentType = 'url';
+        }
+    }
+    text() {
+        if (this.source instanceof Blob) {
+            return this.source.text();
+        }
+        else
+            return new Promise((resolve, reject) => {
+                resolve(this.#text);
+            });
+    }
+    source;
+    #text;
+    contentType;
+}
+class MediaHandler {
+    // returns a promise resolves the final image with applied transformations / color.
+    static async handle(source, color) {
+        let media = new IconMedia(source);
+        console.log(media);
+        let text = await media.text();
         return new Promise((resolve, reject) => {
-            if (isAnSvg) {
+            if (media.contentType === 'svg') {
                 resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
             }
-            else if (isNode && media instanceof Buffer && !(media instanceof URL)) { // Buffer (non-SVG)
-                resolve(media.toString());
+            else if (media.contentType === 'other') {
+                resolve(text);
             }
-            else if (!(media instanceof Buffer) && (MediaHandler.isValidUrl(media)) || isBrowser) { // External Image (Fetch). We'll try to fetch anything a browser gives us.
-                media = media.toString();
-                fetch(media).then((response) => {
+            else if (media.contentType === 'url') { // External Image (Fetch). We'll try to fetch anything a browser gives us.
+                let url = text;
+                fetch(url).then((response) => {
                     response.text().then(text => {
                         if (response.headers.get("content-type")?.includes("image/svg+xml")) {
                             resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
@@ -215,10 +237,13 @@ class MediaHandler {
         if (!isBrowser && media instanceof Buffer) {
             return true;
         }
-        else if (!isBrowser && fs.existsSync(media)) {
+        else if (!isBrowser && typeof media === 'string' && fs.existsSync(media)) {
             return true;
         }
-        else if (!(media instanceof Buffer) && MediaHandler.isValidUrl(media) || isBrowser) { // might as well try the fetch if we're on browser.
+        else if (!(media instanceof Buffer) && !(media instanceof Blob) && MediaHandler.isValidUrl(media) || isBrowser) { // might as well try the fetch if we're on browser.
+            return true;
+        }
+        else if (media instanceof Blob) {
             return true;
         }
     }

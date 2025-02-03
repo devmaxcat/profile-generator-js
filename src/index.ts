@@ -37,9 +37,9 @@ import { JSDOM } from "jsdom";
 import { Buffer } from "buffer";
 
 if (isNode) {
-    const DOM = new JSDOM();
-    const window = DOM.window;
-    const XMLSerializer = window.XMLSerializer;
+    var DOM = new JSDOM();
+    var window = DOM.window;
+    var XMLSerializer = window.XMLSerializer;
 }
 
 /** 
@@ -77,10 +77,9 @@ export default function generateAvatar(
         console.warn(`profile-generator-js: Custom icons must be a URL${isNode ? ', Buffer, or File Path' : ''}. Your icon will be ignored.`)
     }
 
-
     // Render functions
     function renderBackground() {
-        context.fillStyle = stringToColor(uniqueIndentifier);
+        context.fillStyle = options.background ? options.background : stringToColor(uniqueIndentifier);
         context.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -94,19 +93,17 @@ export default function generateAvatar(
 
     // Export function
     function canvasExport() {
-        if (!isBrowser && options.exportAsBuffer) {
-            const buffer = canvas.toBuffer();
-            new Blob([buffer], { type: options.export });
-            return buffer;
-        } else if (typeof options.export === "string" && options.export === "image/png") {
+
+        if (typeof options.export === "string" && options.export === "image/png") {
             if (options.quality) {
                 console.warn('profile-generator-js: Quality is not supported for mimeType of image/png. Your quality setting will be ignored')
             }
             return canvas.toDataURL(options.export);
-        } else if (typeof options.export === "string" && (options.export === "image/jpeg" || options.export === "image/webp")) {
+        } else if (typeof options.export === "string" && (options.export === "image/jpeg")) {
 
             return canvas.toDataURL(options.export, options.quality);
         }
+
         canvas.toDataURL(options.export);
 
 
@@ -164,7 +161,8 @@ export default function generateAvatar(
 
 enum MimeType {
     png = "image/png",
-    jpeg = "image/jpeg"
+    jpeg = "image/jpeg",
+    webp = "image/webp"
 }
 export class AvatarOptions {
     constructor(properties?: Partial<AvatarOptions>) {
@@ -176,11 +174,12 @@ export class AvatarOptions {
     }
     size: number = 500;
     foreground: string = "white";
+    background?: string;
     font: string = "Arial";
     fontSize: number = this.size / 2;
     weight: string = "bold";
     customIcon?: string | Buffer | URL;
-    export: MimeType = MimeType.png;
+    export: any = "image/png"
     quality: number = 1;
     exportAsBuffer: boolean = false;
 }
@@ -202,32 +201,63 @@ export function stringToColor(str: string): string {
     return color;
 }
 
-
-class MediaHandler {
-    // returns a promise resolves the final image with applied transformations / color.
-    static handle(media: string | Buffer | URL, color: string): Promise<string> {
-        let text: string;
-        let isAnSvg: boolean = false;
+class IconMedia {
+    constructor(media) {
+        this.source = media;
 
         // File Buffer
         if (!isBrowser && media instanceof Buffer) {
-            text = media.toString();
-            isSvg(text) ? isAnSvg = true : isAnSvg = false;
+            this.#text = media.toString();
             // Local File Path
-        } else if (!isBrowser && fs.existsSync(media)) {
-            const fileContent = fs.readFileSync(media);
-            text = fileContent.toString();
-            isSvg(text) ? isAnSvg = true : isAnSvg = false;
-        }
-        return new Promise<string>((resolve, reject) => {
-            if (isAnSvg) {
-                resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
-            } else if (isNode && media instanceof Buffer && !(media instanceof URL)) { // Buffer (non-SVG)
-                resolve(media.toString());
-            } else if (!(media instanceof Buffer) && (MediaHandler.isValidUrl(media)) || isBrowser) { // External Image (Fetch). We'll try to fetch anything a browser gives us.
-                media = media.toString()
+        } else if (!isBrowser && typeof media === 'string' && fs.existsSync(media)) {
+            this.#text = fs.readFileSync(media).toString();
+            // Blob
+        } else if (media instanceof Blob) {
+            this.#text = ''
+           
+        } 
 
-                fetch(media).then((response) => {
+        this.contentType = isSvg(this.#text) ? 'svg' : 'other';
+        // External URL
+        if (!(media instanceof Buffer) && (MediaHandler.isValidUrl(media)) || isBrowser) {
+            this.#text = this.source.toString();
+            this.contentType = 'url';
+        }
+
+        if (this.contentType === 'other') {
+        }
+
+    }
+    text(): Promise<string> {
+        if (this.source instanceof Blob) {
+            return this.source.text()
+        } else return new Promise<string>((resolve, reject) => {
+                resolve(this.#text);
+            })
+
+
+    }
+    source: string | Buffer | URL | Blob;
+    #text: string;
+    contentType: 'svg' | 'other' | 'url';
+}
+
+
+class MediaHandler {
+    // returns a promise resolves the final image with applied transformations / color.
+    static async handle(source: string | Buffer | URL | Blob, color: string): Promise<string> {
+        let media = new IconMedia(source);
+        console.log(media)
+        let text = await media.text();
+        return new Promise<string>((resolve, reject) => {
+            if (media.contentType === 'svg') {
+                resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
+            } else if (media.contentType === 'other') { 
+                resolve(text);
+            } else if (media.contentType === 'url') { // External Image (Fetch). We'll try to fetch anything a browser gives us.
+                let url = text
+
+                fetch(url).then((response) => {
                     response.text().then(text => {
                         if (response.headers.get("content-type")?.includes("image/svg+xml")) {
                             resolve(MediaHandler.#updateSvgColor(MediaHandler.#svgTextParser(text), color));
@@ -239,18 +269,20 @@ class MediaHandler {
             }
         });
     }
-    static isAcceptableMedia(media: string | Buffer | URL): Boolean {
+    static isAcceptableMedia(media: string | Buffer | URL | Blob): Boolean {
         if (!isBrowser && media instanceof Buffer) {
             return true;
-        } else if (!isBrowser && fs.existsSync(media)) {
+        } else if (!isBrowser && typeof media === 'string' && fs.existsSync(media)) {
             return true;
-        } else if (!(media instanceof Buffer) && MediaHandler.isValidUrl(media) || isBrowser) { // might as well try the fetch if we're on browser.
+        } else if (!(media instanceof Buffer) && !(media instanceof Blob) && MediaHandler.isValidUrl(media) || isBrowser) { // might as well try the fetch if we're on browser.
+            return true;
+        } else if (media instanceof Blob) {
             return true;
         }
 
 
     }
-    static isValidUrl(url: string | URL): boolean {
+    static isValidUrl(url: any): boolean {
         try {
             return Boolean(new URL(url));
         }
